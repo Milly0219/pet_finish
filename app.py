@@ -10,7 +10,7 @@ from mysql.connector import connect
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 import openai
-
+from dotenv import dotenv_values
 
 
 load_dotenv()
@@ -23,7 +23,7 @@ DB_NAME = os.getenv('DB_NAME')
 
 API_KEY = os.getenv('API_KEY')
 API_URL = os.getenv('API_URL')
-openai.api_key=os.getenv("OPENAI_API_KEY")
+openai.api_key = dotenv_values('.env')["API_KEY2"]
 
 # 1. 檢查並建立資料庫
 def initialize_database():
