@@ -1,0 +1,433 @@
+body{
+    margin: 0; 
+    padding: 0;
+}
+
+
+
+.map{
+    height: 100vh; 
+    width: 100%; 
+    margin: 0; 
+    padding: 0;
+}
+
+.buttons{
+    position: fixed; 
+    bottom: 10px; 
+    right: 1%; 
+    z-index: 5;
+}
+
+/* From Uiverse.io by LightAndy1 */ 
+.search {
+    display: flex;
+    margin:auto;
+    position: fixed;
+    justify-content: center;
+    line-height: 28px;
+    align-items: center;
+    width: 500px;
+    top: 10px; 
+    left:40%;
+    z-index: 5;
+  }
+  
+  .input {
+    width: 100%;
+    height: 40px;
+    line-height: 28px;
+    padding: 0 1rem;
+    padding-left: 2.5rem;
+    border: 2px solid transparent;
+    border-radius: 20px;
+    outline: none;
+    background-color: #fff7f0;
+    color: #0d0c22;
+    transition: 0.3s ease;
+  }
+  
+  .input::placeholder {
+    color: #9e9ea7;
+  }
+  
+  .input:focus,
+  input:hover {
+    outline: none;
+    border-color: #ffdbb4;
+    background-color: #fff;
+    box-shadow: 0 0 0 4px rgb(255	219	180 / 50%);
+  }
+  
+  .icon {
+    position: absolute;
+    left: 1rem;
+    fill: #9e9ea7;
+    width: 1rem;
+    height: 1rem;
+  }
+  
+
+  /* From Uiverse.io by Shakil-Babu */ 
+.btn {
+    background-color: #fdd8b2;
+    padding: 14px 40px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 10px;
+    border: 3px solid #907c76;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    transition: .4s;
+   }
+   
+   .btn span:last-child {
+    display: none;
+   }
+   
+   .btn:hover {
+    transition: .4s;
+    border: 3px dashed #907c76;
+    background-color: #fff;
+    color: #d08d7b;
+   }
+   
+   .btn:active {
+    background-color: #f6e4c9;
+   }
+   
+   
+   .add-button {
+    cursor: pointer;
+    outline: none;
+    transition: transform 0.3s ease;
+    border:none;
+    background-color: transparent;
+    position:fixed; 
+    top:10px; 
+    right: 1%;  
+  }
+  
+  .add-button:hover {
+    transform: rotate(90deg);
+  }
+  
+  .svg-icon {
+    stroke: #f97316; /* orange-400 */
+    fill: white;
+    transition: fill 0.3s ease;
+  }
+  
+  .add-button:hover .svg-icon {
+    fill: #ffdbb4; /* orange-800 */
+  }
+  
+  .add-button:active .svg-icon {
+    stroke: #fed7aa; /* orange-200 */
+    fill: #fb923c; /* orange-600 */
+    transition-duration: 0s;
+  }
+  
+  .svg-icon path {
+    stroke-width: 1.5;
+  }
+  
+  .back {
+    cursor: pointer;
+    outline: none;
+    border:none;
+    position:fixed; 
+    top:10px; 
+    left: 1%;  
+    background-image: url('../img/back.png');
+    background-size: cover;
+    width: 50px;
+    height:50px;
+    background-color: transparent;
+  }
+
+  #infoPanel {
+    position: fixed; /* 固定在螢幕上方 */
+    top: 0;
+    left: -350px; /* 初始位置完全在螢幕外 */
+    width: 600px; /* 設定資訊面板的寬度 */
+    height: 100%; /* 高度為螢幕的高度 */
+    background-color: #FFF7F0; /* 半透明白色背景 */
+    border-right: 1px solid #ccc; /* 右邊框線 */
+    overflow-y: auto; /* 當內容過多時顯示滾動條 */
+    z-index: 1; /* 保持面板在地圖之上 */
+    padding: 20px; /* 面板內的填充距離 */
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3); /* 添加陰影效果 */
+    transition: transform 0.5s ease-in-out; /* 添加滑動顯示的動畫效果 */
+    transform: translateX(-100%); /* 初始狀態下將面板隱藏 */
+}
+/* 資訊面板滑入螢幕時的狀態 */
+#infoPanel.show {
+    transform: translateX(350px); /* 顯示時將面板滑入螢幕左側 */
+}
+/* 設置標題的樣式 */
+h2 {
+    margin-top: 0;
+    font-size: 1.5em; /* 調整標題大小 */
+    color: #333;
+}
+/* 資訊面板中每個項目的樣式 */
+.place-info {
+    margin-bottom: 10px;
+    padding: 20px;
+    border: 1px solid #FAE5CE;
+    border-radius: 5px; /* 添加圓角 */
+    background-color: #FFFFFF;
+    color:#5A5A5A;
+    font-weight:bold;
+    float:left;
+ 
+
+}
+
+.text-wrapper {
+  font-family: "Inter", Helvetica;
+  font-weight: 700;
+  color: #907c76;
+  font-size: 20px;
+  letter-spacing: 4.80px;
+  line-height: normal;
+  float:left;
+}
+.text-wrapper-2 {
+  word-break: break-word;           /* 確保長字在需要時換行 */
+  overflow-wrap: break-word;        /* 控制單字自動換行 */
+  position: inherit;
+  padding:3px;
+  height:auto;
+  /*top: 2px;
+  left: 178px;*/
+  font-family: "Inter", Helvetica;
+  font-weight: 500;
+  color: #595959;
+  font-size: 20px;
+  letter-spacing: 3px;
+  line-height: normal;
+  white-space: normal;              /* 允許換行 */
+}
+
+.text-wrapper-3 {
+  font-family: "Inter", Helvetica;
+  font-weight: 700;
+  color: #907c76;
+  font-size: 20px;
+  /*letter-spacing: 4.80px;*/
+  line-height: normal;
+  float:left;
+  margin:10px;
+  padding:10px;
+}
+
+
+.reportbutton {
+  background-image: url('../img/回報按鈕.png'); /* 背景圖片 */
+  cursor: pointer; 
+  background-color: transparent;
+  outline: none; 
+  background-size: contain; /* 背景圖片覆蓋整個容器 */
+  width: 200px;  /* 按鈕寬度 */
+  height: 50px;  /* 按鈕高度 */
+  background-repeat: no-repeat; /* 不重複背景圖片 */
+  background-position: center; /* 背景圖片居中顯示 */
+  border: transparent; /* 無邊框 */
+  position:relative;
+  left:25%;
+  margin-top:30px;
+}
+
+.navigatebutton {
+  background-image: url('../img/navigate.png'); /* 背景圖片 */
+  cursor: pointer; 
+  background-color: transparent;
+  outline: none; 
+  background-size: contain; /* 背景圖片覆蓋整個容器 */
+  width: 200px;  /* 按鈕寬度 */
+  height: 50px;  /* 按鈕高度 */
+  background-repeat: no-repeat; /* 不重複背景圖片 */
+  background-position: center; /* 背景圖片居中顯示 */
+  border: transparent; /* 無邊框 */
+  position:relative;
+  left:25%;
+  margin-top:30px;
+}
+
+/* From Uiverse.io by zjssun */ 
+.button {
+  position: fixed;
+  top:10px;
+  right:1%;
+  width:50px;
+  height:50px;
+  border-radius: 100%;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  background-color: #bb6e6b;
+  transition: all 0.2s ease;
+  font-size: 45px;
+  text-align: center;
+}
+
+.button:active {
+  transform: scale(0.96);
+}
+
+.button:before,
+.button:after {
+  position: absolute;
+  content: "";
+  width: 150%;
+  left: 50%;
+  height: 100%;
+  transform: translateX(-50%);
+  z-index: -1000;
+  background-repeat: no-repeat;
+}
+
+.button:hover:before {
+  top: -70%;
+  background-image: radial-gradient(circle, #bb6e6b 20%, transparent 20%),
+    radial-gradient(circle, transparent 20%, #bb6e6b 20%, transparent 30%),
+    radial-gradient(circle, #bb6e6b 20%, transparent 20%),
+    radial-gradient(circle, #bb6e6b 20%, transparent 20%),
+    radial-gradient(circle, transparent 10%, #bb6e6b 15%, transparent 20%),
+    radial-gradient(circle, #bb6e6b 20%, transparent 20%),
+    radial-gradient(circle, #bb6e6b 20%, transparent 20%),
+    radial-gradient(circle, #bb6e6b 20%, transparent 20%),
+    radial-gradient(circle, #bb6e6b 20%, transparent 20%);
+  background-size: 10% 10%, 20% 20%, 15% 15%, 20% 20%, 18% 18%, 10% 10%, 15% 15%,
+    10% 10%, 18% 18%;
+  background-position: 50% 120%;
+  animation: greentopBubbles 0.6s ease;
+}
+
+@keyframes greentopBubbles {
+  0% {
+    background-position: 5% 90%, 10% 90%, 10% 90%, 15% 90%, 25% 90%, 25% 90%,
+      40% 90%, 55% 90%, 70% 90%;
+  }
+
+  50% {
+    background-position: 0% 80%, 0% 20%, 10% 40%, 20% 0%, 30% 30%, 22% 50%,
+      50% 50%, 65% 20%, 90% 30%;
+  }
+
+  100% {
+    background-position: 0% 70%, 0% 10%, 10% 30%, 20% -10%, 30% 20%, 22% 40%,
+      50% 40%, 65% 10%, 90% 20%;
+    background-size: 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+  }
+}
+
+.button:hover::after {
+  bottom: -70%;
+  background-image: radial-gradient(circle, #bb6e6b 20%, transparent 20%),
+    radial-gradient(circle, #bb6e6b 20%, transparent 20%),
+    radial-gradient(circle, transparent 10%, #bb6e6b 15%, transparent 20%),
+    radial-gradient(circle, #bb6e6b 20%, transparent 20%),
+    radial-gradient(circle, #bb6e6b 20%, transparent 20%),
+    radial-gradient(circle, #bb6e6b 20%, transparent 20%),
+    radial-gradient(circle, #bb6e6b 20%, transparent 20%);
+  background-size: 15% 15%, 20% 20%, 18% 18%, 20% 20%, 15% 15%, 20% 20%, 18% 18%;
+  background-position: 50% 0%;
+  animation: greenbottomBubbles 0.6s ease;
+}
+
+@keyframes greenbottomBubbles {
+  0% {
+    background-position: 10% -10%, 30% 10%, 55% -10%, 70% -10%, 85% -10%,
+      70% -10%, 70% 0%;
+  }
+
+  50% {
+    background-position: 0% 80%, 20% 80%, 45% 60%, 60% 100%, 75% 70%, 95% 60%,
+      105% 0%;
+  }
+
+  100% {
+    background-position: 0% 90%, 20% 90%, 45% 70%, 60% 110%, 75% 80%, 95% 70%,
+      110% 10%;
+    background-size: 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+  }
+}
+
+/* From Uiverse.io by xopc333 */ 
+.back-btn {
+  display: block;
+  position:fixed; 
+  top:10px; 
+  left: 1%;  
+  width: 60px;
+  height:60px;
+  margin: 0;
+  overflow: hidden;
+  outline: none;
+  background-color: transparent;
+  cursor: pointer;
+  border: 0;
+}
+
+.back-btn:before,
+.back-btn:after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  inset: 7px;
+}
+
+.back-btn:before {
+  border: 4px solid #bb6e6b;
+  transition: opacity 0.4s cubic-bezier(0.77, 0, 0.175, 1) 80ms,
+    transform 0.5s cubic-bezier(0.455, 0.03, 0.515, 0.955) 80ms;
+}
+
+.back-btn:after {
+  border: 4px solid #bb6e6b;
+  transform: scale(1.3);
+  transition: opacity 0.4s cubic-bezier(0.165, 0.84, 0.44, 1),
+    transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  opacity: 0;
+}
+
+.back-btn:hover:before,
+.back-btn:focus:before {
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 0.4s cubic-bezier(0.165, 0.84, 0.44, 1),
+    transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.back-btn:hover:after,
+.back-btn:focus:after {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 0.4s cubic-bezier(0.77, 0, 0.175, 1) 80ms,
+    transform 0.5s cubic-bezier(0.455, 0.03, 0.515, 0.955) 80ms;
+}
+
+.button-box {
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.button-elem {
+  display: block;
+  width: 20px;
+  height: 20px;
+  margin: 17px 18px 0 20px;
+  transform: rotate(180deg);
+  fill: #bb6e6b;
+}
+
+.back-btn:hover .button-box,
+.back-btn:focus .button-box {
+  transition: 0.4s;
+  transform: translateX(-56px);
+}

@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>地圖首頁</title>
+    <link href="../static/css/index.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.2/dist/tailwind.min.css" rel="stylesheet">
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAUzXfE5s1UNRbOrPzU-oleqxplMShAerc&libraries=places"></script>
+    <style>
+       
+    </style>
+    <script>
+        let map; // 地圖物件  
+        let currentPosition; // 儲存使用者當前位置  
+        let selectedHospital; // 儲存選擇的寵物醫院資訊  
+        let marker; // 標示選定寵物醫院位置的標記 
+        let directionsService; // Google Maps Directions API，用於查詢路線 
+        let directionsRenderer; // 用來顯示路線的物件 
+        let infoWindow; // 彈出視窗，顯示寵物醫院資訊 
+        let infoPanel;
+        // 追蹤每種地標的顯示狀態
+let hospitalsVisible = false;
+let restaurantsVisible = false;
+let hotelsVisible = false;
+let allMarkersVisible = false; // 新增的變數
+
+let openMarker = null; // 跟踪當前開啟資訊的標記
+
+        // 假設 markers 是您之前定義的地標集合
+const markers = {
+    hospitals: [], // 存放寵物醫院的標記
+    restaurants: [], // 存放餐廳的標記
+    hotels: [] // 存放住宿的標記
+};
+
+
+// 關閉資訊面板
+function closeInfoPanel() {
+    const infoPanel = document.getElementById('infoPanel')
+    infoPanel.classList.remove('show'); // 移除顯示狀態，隱藏資訊面板
+}
+
+// 顯示/隱藏寵物醫院地標
+function toggleHospitals() {
+    hospitalsVisible = !hospitalsVisible;
+    toggleMarkers(markers.hospitals, hospitalsVisible);
+}
+
+// 顯示/隱藏餐廳地標
+function toggleRestaurants() {
+    restaurantsVisible = !restaurantsVisible;
+    toggleMarkers(markers.restaurants, restaurantsVisible);
+}
+
+// 顯示/隱藏住宿地標
+function toggleHotels() {
+    hotelsVisible = !hotelsVisible;
+    toggleMarkers(markers.hotels, hotelsVisible);
+}
+
+function showAllMarkers() {
+    allMarkersVisible = !allMarkersVisible; // 切換狀態
+
+    if (allMarkersVisible) {
+        // 顯示所有標記
+        toggleMarkers(markers.hospitals, true);
+        toggleMarkers(markers.restaurants, true);
+        toggleMarkers(markers.hotels, true);
+    } else {
+        // 隱藏所有標記
+        toggleMarkers(markers.hospitals, false);
+        toggleMarkers(markers.restaurants, false);
+        toggleMarkers(markers.hotels, false);
+    }
+}
+
+function toggleMarkers(markersArray, shouldShow) {
+    markersArray.forEach(marker => {
+        if (shouldShow) {
+            marker.setMap(map); // 顯示標記
+        } else {
+            marker.setMap(null); // 隱藏標記
+        }
+    });
+}
+
+
+
+
+       // 顯示所有地標 (醫院、餐廳、住宿)
+       function showAllMarkers() {
+        // 根據 allMarkersVisible 的狀態決定要顯示還是隱藏
+    if (allMarkersVisible) {
+        // 如果所有標記都顯示，則隱藏它們
+        toggleMarkers(markers.hospitals, false);
+        toggleMarkers(markers.restaurants, false);
+        toggleMarkers(markers.hotels, false);
+        allMarkersVisible = false; // 更新狀態
+    } else {
+        // 如果有標記隱藏，則顯示所有標記
+        toggleMarkers(markers.hospitals, true);
+        toggleMarkers(markers.restaurants, true);
+        toggleMarkers(markers.hotels, true);
+        allMarkersVisible = true; // 更新狀態
+    }
+    }
+
+    var customIcon = {
+        url: '../static/img/searchpet.png', // 圖片的相對路徑
+        scaledSize: new google.maps.Size(32, 32) // 可調整圖標大小
+    };
+    var customIconhospital = {
+        url: '../static/img/vet.png', // 圖片的相對路徑
+        scaledSize: new google.maps.Size(32, 32) // 可調整圖標大小
+    };
+
+    var customIconrestaurant = {
+        url: '../static/img/restaurant.png', // 圖片的相對路徑
+        scaledSize: new google.maps.Size(32, 32) // 可調整圖標大小
+    };
+    
+
+    var customIconhotel = {
+        url: '../static/img/house.png', // 圖片的相對路徑
+        scaledSize: new google.maps.Size(32, 32) // 可調整圖標大小
+    };
+
+    // 從 API 獲取遺失寵物數據並在地圖上顯示
+    function fetchLostPets() {
+        fetch('/api/pet-lost')
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(pet => {
+                    const position = { lat: parseFloat(pet.latitude), lng: parseFloat(pet.longitude) };
+                    const marker = new google.maps.Marker({
+                        map: map,
+                        position: position,
+                        icon: customIcon,
+                    });
+    
+                    // 為每個標記添加點擊事件
+                    google.maps.event.addListener(marker, 'click', () => {
+                        if (openMarker === marker) {
+                            // 如果點擊的是當前顯示的標記，則關閉面板
+                            closeInfoPanel();
+                            openMarker = null; // 重置為無開啟標記
+                        } else {
+                            // 如果點擊的是其他標記
+                            if (openMarker) {
+                                // 關閉上一個標記的資訊
+                                closeInfoPanel();
+                            }
+                            // 更新並顯示新標記的資訊
+                            updateLostPetInfoPanel(pet);
+                            infoPanel.classList.add('show');
+                            openMarker = marker; // 更新為新標記
+                        }
+                    });
+                });
+            })
+            .catch(error => console.error('獲取遺失寵物數據錯誤:', error));
+    }
+    
+    function reportLostPet(lostLocation) {
+        fetch('/api/pet-lost/delete', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ lost_location: lostLocation })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                alert(data.message); // 顯示刪除成功訊息
+                closeInfoPanel()
+                // 刪除該標記
+                if (openMarker) {
+                    openMarker.setMap(null); // 從地圖上移除該標記
+                    openMarker = null; // 重置開啟的標記
+                }
+            } else if (data.error) {
+                alert(data.error); // 顯示錯誤訊息
+            }
+        })
+        .catch(error => {
+            console.error('刪除失敗:', error);
+        });
+    }
+    
+
+    function updateLostPetInfoPanel(pet) {
+        let content = `<div class="place-info"><div class="text-wrapper">寵物名字:</div>
+          <div class="text-wrapper-2">${pet.pet_name}</div><br>`;
+        content += `<div class="text-wrapper">走失日期:</div>
+          <div class="text-wrapper-2">${pet.lost_date}</div><br>`;   
+        content += `<div class="text-wrapper">走失地點:</div>
+          <div class="text-wrapper-2">${pet.lost_location}</div><br>`;
+        content += `<div class="text-wrapper">寵物特徵:</div>
+          <div class="text-wrapper-2">${pet.features || '無描述'}</div><br>`;   
+        content += `<div class="text-wrapper">聯絡電話:</div>
+          <div class="text-wrapper-2">${pet.contact_phone}</div><br>`;  
+        content += `<img src="${pet.photo_url}"  style="width:450px; float:left; "/> <br>`;
+        
+
+
+// 添加回報按鈕並設定回報功能
+    content += `<button onclick="reportLostPet('${pet.lost_location}')" class="reportbutton"></button></div>`;
+        infoPanel.innerHTML = content;
+    }
+    
+        function initMap() {
+                fetch('/get_data')
+                  .then(response => response.json())
+                  .then(data => {
+                    console.log(data);
+                  })
+                  .catch(error => console.error('Error:', error));
+
+                
+            // 自訂地圖樣式，隱藏所有不需要的地標 
+            const mapStyle = [
+                {
+                    "featureType": "poi.business", // 隱藏商業地標
+                    "stylers": [{ "visibility": "off" }] 
+                },
+                {
+                    "featureType": "poi", // 隱藏其他地標
+                    "stylers": [{ "visibility": "off" }]
+                }
+            ];
+
+            infoPanel = document.getElementById('infoPanel');// 獲取資訊面板元素
+
+            // 建立地圖，預設中心位置為台灣某處（23.553118, 121.0211024），縮放等級為7 
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 23.553118, lng: 121.0211024 }, // 台灣大致中心經緯度 
+                zoom: 7, // 地圖縮放程度 
+                styles: mapStyle, // 自訂地圖樣式 
+                disableDefaultUI: true,
+            });
+
+            // 當使用者點擊地圖時隱藏資訊視窗
+            map.addListener("click", () => {
+                closeInfoPanel();
+            });
+
+
+            // 取得使用者當前位置 
+            navigator.geolocation.getCurrentPosition(function(position) {
+                // 儲存當前位置的經緯度
+                currentPosition = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                
+                sendLocationToServer(currentPosition);
+
+
+                map.setCenter(currentPosition); // 將地圖中心設置為使用者當前位置
+                map.setZoom(18); // 縮放地圖到18級，顯示更細緻的區域
+
+                const service = new google.maps.places.PlacesService(map);
+                
+                fetchLostPets(); // 呼叫函數來顯示遺失寵物
+               
+
+                // 綁定按鈕點擊事件
+document.getElementById('toggleHospitalsButton').addEventListener('click', toggleHospitals);
+document.getElementById('toggleRestaurantsButton').addEventListener('click', toggleRestaurants);
+document.getElementById('toggleHotelsButton').addEventListener('click', toggleHotels);
+allMarkersVisible = false; // 初始狀態  
+// 經緯度的 AJAX 發送
+function sendLocationToServer(position) { 
+    const data = { 
+        latitude: position.lat,
+        longitude: position.lng
+    };
+
+    fetch('/templates', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('網絡回應不正常');
+        }
+        return response.json(); 
+    }) 
+    .then(data => { 
+        console.log('成功:', data); 
+    })
+    .catch((error) => {
+        console.error('錯誤:', error);
+    });
+}
+
+
+
+                // 搜尋寵物醫院
+        const hospitalRequest = {
+            location: { lat: currentPosition.lat, lng: currentPosition.lng },
+            radius: '50000',
+            keyword: '寵物醫院'
+        };
+
+        service.nearbySearch(hospitalRequest, (results, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK) {
+                for (let i = 0; i < results.length; i++) {
+                    const marker = createMarker(results[i], '醫院'); // 創建地標
+                    marker.setMap(null); // 隱藏醫院的標記
+                    markers.hospitals.push(marker); // 將醫院的地標儲存到陣列
+                }
+            }
+        });
+
+        // 搜尋寵物餐廳
+        const restaurantRequest = {
+            location: { lat: currentPosition.lat, lng: currentPosition.lng },
+            radius: '50000',
+            keyword: '寵物餐廳'
+        };
+
+        service.nearbySearch(restaurantRequest, (results, status) => {
+            console.log('搜索餐廳的結果:', results); // 添加這行來檢查結果
+            console.log('API 響應狀態:', status); // 確認狀態
+            if (status === google.maps.places.PlacesServiceStatus.OK) {
+                for (let i = 0; i < results.length; i++) {
+                    const marker = createMarker(results[i], '餐廳'); // 創建餐廳的地標
+                    marker.setMap(null); // 隱藏餐廳的標記
+                    markers.restaurants.push(marker); // 將餐廳的地標儲存到陣列
+                }
+            }
+        });
+        
+        // 搜尋寵物住宿
+        const hotelRequest = {
+            location: { lat: currentPosition.lat, lng: currentPosition.lng },
+            radius: '50000',
+            keyword: '寵物住宿'
+        };
+
+        service.nearbySearch(hotelRequest, (results, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK) {
+                for (let i = 0; i < results.length; i++) {
+                    const marker = createMarker(results[i], '住宿'); // 創建住宿的地標
+                    marker.setMap(null); // 隱藏住宿的標記
+                    markers.hotels.push(marker); // 將住宿的地標儲存到陣列
+                }
+            }
+        });
+
+
+   
+
+                // 啟用自動完成功能，讓使用者輸入時獲得寵物醫院建議 
+                const autocomplete = new google.maps.places.Autocomplete(
+                    document.getElementById('search-input'), // 搜尋框 
+                    {
+                        types: ['veterinary_care', 'restaurant', 'lodging'], // 搜尋類型限定為寵物醫院
+                        bounds: { // 限制搜尋範圍為使用者周圍
+                            north: currentPosition.lat + 0.001,
+                            south: currentPosition.lat - 0.001,
+                            east: currentPosition.lng + 0.001,
+                            west: currentPosition.lng - 0.001,
+                        },
+                        strictBounds: false, // 不嚴格限制在範圍內，可出現範圍外的地標
+                    }
+                );
+
+                // 根據請求結果創建標記
+            
+
+                
+
+
+            // 創建地圖上的標記並綁定點擊事件
+            function createMarker(place, type) {
+                let icon1;
+
+                if (type === '醫院') {
+                    icon1 = customIconhospital
+                } else if (type === '餐廳') {
+                    icon1 = customIconrestaurant
+                    console.log("餐廳圖標:", icon1.url);
+                } else if (type === '住宿') {
+                    icon1 = customIconhotel
+                }
+    
+                // 創建地標並設定其位置與標記
+                const marker = new google.maps.Marker({
+                    map: map,
+                    position: place.geometry.location,
+                    title: place.name,
+                    icon: icon1, // 根據類型標記不同字母
+                });
+
+            // 當用戶點擊標記時顯示資訊面板
+            
+google.maps.event.addListener(marker, 'click', () => {
+    const service = new google.maps.places.PlacesService(map);
+    // 地圖中心移至該地標，並放大
+
+    if (openMarker === marker) {
+        // 如果點擊的是當前顯示的標記，則關閉面板
+        closeInfoPanel();
+        openMarker = null; // 重置為無開啟標記
+    } else {
+        // 如果點擊的是其他標記
+        if (openMarker) {
+            // 關閉上一個標記的資訊
+            closeInfoPanel();
+        }
+        // 獲取新的標記詳細資訊
+        service.getDetails({ placeId: place.place_id }, (details, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK) {
+                updateInfoPanel(details);
+                infoPanel.classList.add('show');
+                openMarker = marker; // 更新為新標記
+            }
+        });
+    }
+});
+
+            return marker; // 返回創建的地標
+        }
+
+        
+
+ 
+
+
+        // 更新資訊面板的內容
+        function updateInfoPanel(place) {
+            let content = `<div class="place-info"><strong><h3 style="color:#88746E;">${place.name}</h3></strong><br>`;
+            // 如果有照片，顯示照片
+            if (place.photos) {
+                const photoUrl = place.photos[0].getUrl({ maxWidth: 450 });
+                content += `<br><img src="${photoUrl}" alt="${place.name}" style="width:450px;height:auto;"><br><br>`;
+            }
+            
+            content += `<div class="text-wrapper">地址:</div>
+          <div class="text-wrapper-2">${place.vicinity || '地址未知'}</div><br>`;
+            
+            // 檢查是否有營業時間的資訊
+            if (place.opening_hours) {
+                content += `<div class="text-wrapper">營業時間:</div>
+          <div class="text-wrapper-2">${place.opening_hours.open_now ? '開放中' : '關閉'}</div>`;
+            } else {
+                content += `<div class="text-wrapper">營業時間:</div> <div class="text-wrapper-2">營業未知</div>`;
+            }
+            
+            // 顯示電話號碼
+            content += `<br> <div class="text-wrapper">電話:</div><div class="text-wrapper-2">${place.formatted_phone_number || '資訊未知'}</div>`;
+            
+
+            // 顯示評分
+            content += `<br><div class="text-wrapper">評分:</div> <div class="text-wrapper-2">${place.rating ? place.rating.toFixed(1) : '無評分'}</div>`;
+            
+
+            // 顯示前三則評論
+            if (place.reviews && place.reviews.length > 0) {
+                content += `<br><div class="text-wrapper">評論:</div>`;
+                for (let i = 0; i < Math.min(2, place.reviews.length); i++) {
+                    const review = place.reviews[i];
+                    content += `<br><div class="text-wrapper-2">* ${review.text}</div>`;
+                }
+            } else {
+                content += `<br><div class="text-wrapper">評論:</div> <div class="text-wrapper-2">資訊未知</div>`;
+            }
+        
+            
+
+            content += `<button class="navigatebutton"></button></div>`;
+        
+            // 添加關閉按鈕
+            //content += `<span class="close-btn" onclick="closeInfoPanel()">關閉</span></div>`;
+        
+            infoPanel.innerHTML = content;
+        }
+        
+
+        
+
+                // 當使用者選擇建議中的寵物醫院時觸發此事件
+                autocomplete.addListener('place_changed', function() {
+                    const place = autocomplete.getPlace(); // 獲取選擇的地點
+                    // 將寵物醫院的各項資訊儲存到 selectedHospital
+                    selectedHospital = {
+                        location: place.geometry.location, // 寵物醫院位置
+                        placeId: place.place_id, // 寵物醫院的Google Place ID
+                        name: place.name, // 寵物醫院名稱
+                        address: place.formatted_address, // 寵物醫院地址
+                        phoneNumber: place.formatted_phone_number, // 寵物醫院電話號碼
+                        rating: place.rating, // 寵物醫院評分
+                    };
+
+                    // 將地圖中心設為選定的寵物醫院位置
+                    map.setCenter(selectedHospital.location);
+
+                    // 如果還沒有標記，就建立一個
+                    if (!marker) {
+                        marker = new google.maps.Marker({
+                            map: map, // 指定標記顯示的地圖
+                        });
+                    }
+
+                    // 將標記設置到寵物醫院的位置
+                    marker.setPosition(selectedHospital.location);
+
+                    // 如果還沒初始化DirectionsService，則進行初始化
+                    if (!directionsService) {
+                        directionsService = new google.maps.DirectionsService();
+                    }
+
+                    // 如果還沒初始化DirectionsRenderer，則進行初始化
+                    if (!directionsRenderer) {
+                        directionsRenderer = new google.maps.DirectionsRenderer({
+                            map: map, // 指定將路線繪製到哪個地圖
+                        });
+                    }
+
+                    // 清空之前的路線
+                    directionsRenderer.set('directions', null);
+
+                    // 請求步行路線
+                    directionsService.route({
+                        origin: new google.maps.LatLng(currentPosition.lat, currentPosition.lng), // 起點為使用者當前位置
+                        destination: { placeId: selectedHospital.placeId }, // 終點為選定寵物醫院
+                        travelMode: 'WALKING', // 使用步行模式
+                    },
+                    function(response, status) {
+                        // 如果請求成功
+                        if (status === 'OK') {
+                            directionsRenderer.setDirections(response); // 在地圖上顯示路線
+
+                            // 如果還沒建立InfoWindow，則進行初始化
+                            if (!infoWindow) {
+                                infoWindow = new google.maps.InfoWindow();
+                            }
+
+                            // 設置彈出的資訊視窗，顯示寵物醫院資訊與步行時間
+                            infoWindow.setContent(`
+                                <h3>${selectedHospital.name}</h3>
+                                <div>地址: ${selectedHospital.address}</div>
+                                <div>電話: ${selectedHospital.phoneNumber || '無資料'}</div>
+                                <div>評分: ${selectedHospital.rating || '無評分'}</div>
+                                <div>步行時間: ${response.routes[0].legs[0].duration.text}</div>
+                                <div><a href="https://www.google.com/maps/place/?q=place_id:${selectedHospital.placeId}" target="_blank">在 Google 上查看</a></div>
+                            `);
+
+                            // 在標記處打開資訊視窗
+                            infoWindow.open(map, marker);
+                        } else {
+                            // 如果請求失敗，顯示錯誤訊息
+                            alert('Directions request failed due to ' + status);
+                        }
+                    });
+                });
+                // 監聽搜尋欄文字變化
+        document.getElementById('search-input').addEventListener('input', function() {
+            if (!this.value) {
+                // 清除導航路線、infoWindow 和 marker
+                if (directionsRenderer) {
+                    directionsRenderer.set('directions', null); // 清除路線
+                }
+                if (infoWindow) {
+                    infoWindow.close(); // 關閉 infoWindow
+                }
+                if (marker) {
+                    marker.setMap(null); // 移除 marker
+                    marker = null; // 重設 marker
+                }
+            }
+        });
+            });
+        }
+
+        // 範例按鈕功能
+        function buttonAction(buttonId) {
+            alert("按下了 " + buttonId + " 按鈕");
+        }
+    </script>
+</head>
+<body onload="initMap()" >
+    <div id="map" class="map"></div>
+<!-- 資訊面板 -->
+<div id="infoPanel" class="info-panel">
+    <!-- 這裡的內容將通過 JavaScript 更新 -->
+</div>
+
+
+    <div class="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon">
+          <g>
+            <path
+              d="M21.53 20.47l-3.66-3.66C19.195 15.24 20 13.214 20 11c0-4.97-4.03-9-9-9s-9 4.03-9 9 4.03 9 9 9c2.215 0 4.24-.804 5.808-2.13l3.66 3.66c.147.146.34.22.53.22s.385-.073.53-.22c.295-.293.295-.767.002-1.06zM3.5 11c0-4.135 3.365-7.5 7.5-7.5s7.5 3.365 7.5 7.5-3.365 7.5-7.5 7.5-7.5-3.365-7.5-7.5z"
+            ></path>
+          </g>
+        </svg>
+        <input class="input" type="search" placeholder="Search"  id="search-input"/>
+    </div>
+      
+    
+    <!-- 右下方按鈕 -->
+    <div class="buttons">
+        <button class="btn text-wrapper-3" id="toggleHospitalsButton">寵物醫院</button>
+        <button class="btn text-wrapper-3" id="toggleHotelsButton">寵物旅店</button>
+        <button class="btn text-wrapper-3" id="toggleRestaurantsButton">寵物友善餐廳</button>
+        <button class="btn text-wrapper-3" id="toggleAllButton" onclick="showAllMarkers()">全部</button>
+        <!--<button class="btn" onclick="buttonAction('按鈕5')">按鈕5</button>-->
+    </div>
+    <a href="/ad-post">
+        <button title="Add New" class="button" >+</button>
+    </a>
+<button class="back-btn">
+  <div class="button-box">
+    <span class="button-elem">
+      <svg viewBox="0 0 46 40" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M46 20.038c0-.7-.3-1.5-.8-2.1l-16-17c-1.1-1-3.2-1.4-4.4-.3-1.2 1.1-1.2 3.3 0 4.4l11.3 11.9H3c-1.7 0-3 1.3-3 3s1.3 3 3 3h33.1l-11.3 11.9c-1 1-1.2 3.3 0 4.4 1.2 1.1 3.3.8 4.4-.3l16-17c.5-.5.8-1.1.8-1.9z"
+        ></path>
+      </svg>
+    </span>
+    <span class="button-elem">
+      <svg viewBox="0 0 46 40">
+        <path
+          d="M46 20.038c0-.7-.3-1.5-.8-2.1l-16-17c-1.1-1-3.2-1.4-4.4-.3-1.2 1.1-1.2 3.3 0 4.4l11.3 11.9H3c-1.7 0-3 1.3-3 3s1.3 3 3 3h33.1l-11.3 11.9c-1 1-1.2 3.3 0 4.4 1.2 1.1 3.3.8 4.4-.3l16-17c.5-.5.8-1.1.8-1.9z"
+        ></path>
+      </svg>
+    </span>
+  </div>
+</button>
+
+    
+</body>
+</html>
